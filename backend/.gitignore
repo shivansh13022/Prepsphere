@@ -1,4 +1,19 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
+
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Runtime / user-generated data
+uploads/
+data/
+
+# Test caches
+.pytest_cache/
+
+# Logs
+*.log
