@@ -37,6 +37,15 @@ export interface InterviewAnswerResponse {
   question: string | null;
   questions_asked: number;
 }
+export interface TopicPerformance {
+  topic: string;
+  overall_score: number;
+  technical_knowledge: number;
+  completeness: number;
+  depth: number;
+  communication: number;
+  questions_answered: number;
+}
 
 export interface InterviewReport {
   overall_score: number;
@@ -45,11 +54,12 @@ export interface InterviewReport {
   depth: number;
   communication: number;
 
+  topic_performance: TopicPerformance[];
+
   strengths: string[];
   weaknesses: string[];
   topics_to_improve: string[];
   recommendations: string[];
-
   summary: string;
 }
 

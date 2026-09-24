@@ -9,7 +9,26 @@ class InterviewState(TypedDict):
     core_topics: list[str]
     gap_topics: list[str]
 
+    # Concepts generated once when the interview starts.
+    #
+    # Example:
+    # {
+    #     "Agentic AI": [
+    #         "fundamentals",
+    #         "tools",
+    #         "memory",
+    #     ]
+    # }
+    topic_concepts: dict[str, list[str]]
+
     current_topic: str | None
+
+    current_concept: str | None
+    current_concept_index: int
+
+    # Number of completed answers for the current concept.
+    questions_on_current_concept: int
+
     current_question: str | None
     candidate_answer: str | None
 

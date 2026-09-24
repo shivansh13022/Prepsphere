@@ -22,10 +22,16 @@ def create_general_interview_plan(
     difficulty: str,
 ) -> InterviewPlan:
 
+    topics = [
+        topic.strip()
+        for topic in focus.split(",")
+        if topic.strip()
+    ]
+
     return InterviewPlan(
         interview_type="general",
         target_role=None,
         difficulty=difficulty,
-        core_topics=[focus],
+        core_topics=topics,
         gap_topics=[],
     )

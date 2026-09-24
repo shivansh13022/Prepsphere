@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -12,22 +14,74 @@ from app.services.interview_evaluation_service import (
     evaluate_interview_answer,
 )
 
-from datetime import datetime, timezone
+
+# =========================================================
+# HELPERS
+# =========================================================
+
+def get_all_topics(state: InterviewState) -> list[str]:
+    """
+    Combine core + gap topics while preserving order
+    and removing duplicates.
+    """
+
+    return list(
+        dict.fromkeys(
+            state["core_topics"] + state["gap_topics"]
+        )
+    )
+
+
+def get_concepts_for_topic(
+    state: InterviewState,
+    topic: str,
+) -> list[str]:
+
+    concepts = state["topic_concepts"].get(
+        topic,
+        [],
+    )
+
+    if concepts:
+        return concepts
+
+    # Defensive fallback.
+    return [
+        "fundamentals",
+        "practical understanding",
+        "common use cases",
+    ]
+
+
 # =========================================================
 # NODE 1: SETUP INTERVIEW
 # =========================================================
 
 def setup_interview(state: InterviewState):
-    first_topic = None
 
-    if state["core_topics"]:
-        first_topic = state["core_topics"][0]
+    all_topics = get_all_topics(state)
 
-    elif state["gap_topics"]:
-        first_topic = state["gap_topics"][0]
+    if not all_topics:
+        return {
+            "current_topic": None,
+            "current_concept": None,
+        }
+
+    first_topic = all_topics[0]
+
+    concepts = get_concepts_for_topic(
+        state,
+        first_topic,
+    )
+
+    first_concept = concepts[0]
 
     return {
         "current_topic": first_topic,
+        "current_concept": first_concept,
+        "current_concept_index": 0,
+        "questions_on_current_concept": 0,
+        "consecutive_follow_ups": 0,
     }
 
 
@@ -36,8 +90,10 @@ def setup_interview(state: InterviewState):
 # =========================================================
 
 def generate_question(state: InterviewState):
+
     question = generate_interview_question(
         topic=state["current_topic"],
+        concept=state["current_concept"],
         difficulty=state["difficulty"],
     )
 
@@ -45,7 +101,8 @@ def generate_question(state: InterviewState):
         "current_question": question,
         "candidate_answer": None,
         "evaluation": None,
-        "questions_asked": state["questions_asked"] + 1,
+        "questions_asked":
+            state["questions_asked"] + 1,
     }
 
 
@@ -54,17 +111,20 @@ def generate_question(state: InterviewState):
 # =========================================================
 
 def evaluate_answer(state: InterviewState):
+
     evaluation = evaluate_interview_answer(
-    question=state["current_question"],
-    candidate_answer=state["candidate_answer"],
-    topic=state["current_topic"],
-    difficulty=state["difficulty"],
+        question=state["current_question"],
+        candidate_answer=state["candidate_answer"],
+        topic=state["current_topic"],
+        concept=state["current_concept"],
+        difficulty=state["difficulty"],
     )
 
     evaluation_dict = evaluation.model_dump()
 
     turn = {
         "topic": state["current_topic"],
+        "concept": state["current_concept"],
         "question": state["current_question"],
         "answer": state["candidate_answer"],
         "evaluation": evaluation_dict,
@@ -75,17 +135,22 @@ def evaluate_answer(state: InterviewState):
     return {
         "evaluation": evaluation_dict,
         "history": history,
+
+        # This counts COMPLETED answers on the current concept.
+        "questions_on_current_concept":
+            state["questions_on_current_concept"] + 1,
     }
 
+
 # =========================================================
-# ROUTER: DECIDE WHAT HAPPENS NEXT
+# ROUTER: AFTER EVALUATION
 # =========================================================
 
 def route_after_evaluation(state: InterviewState):
 
-    # -----------------------------------------
-    # Deterministic application guardrails
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # GLOBAL STOP CONDITIONS
+    # -----------------------------------------------------
 
     if state["end_requested"]:
         return "finish"
@@ -96,17 +161,29 @@ def route_after_evaluation(state: InterviewState):
     if state["questions_asked"] >= state["max_questions"]:
         return "finish"
 
-    # -----------------------------------------
-    # Read AI evaluator decision
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # DETERMINISTIC CONCEPT GUARD
+    # -----------------------------------------------------
+
+    # Never allow endless questioning on one concept.
+    #
+    # Once two completed answers have been collected,
+    # move to another concept regardless of the LLM's
+    # routing decision.
+    if state["questions_on_current_concept"] >= 2:
+        return "next_concept"
+
+    # -----------------------------------------------------
+    # AI EVALUATOR DECISION
+    # -----------------------------------------------------
 
     decision = state["evaluation"]["decision"]
 
-    # Prevent endless follow-up loops
     if decision == "follow_up":
 
-        if state["consecutive_follow_ups"] >= 2:
-            return "next_topic"
+        # One follow-up is enough for V1.
+        if state["consecutive_follow_ups"] >= 1:
+            return "next_concept"
 
         return "follow_up"
 
@@ -116,40 +193,62 @@ def route_after_evaluation(state: InterviewState):
     if decision == "go_deeper":
         return "go_deeper"
 
+    if decision == "next_concept":
+        return "next_concept"
+
     if decision == "next_topic":
         return "next_topic"
 
-    # Safety fallback
-    return "finish"
+    # Safe fallback.
+    return "next_concept"
 
 
-def interview_duration_reached(state: InterviewState) -> bool:
-    started_at = datetime.fromisoformat(state["started_at"])
+# =========================================================
+# DURATION
+# =========================================================
+
+def interview_duration_reached(
+    state: InterviewState,
+) -> bool:
+
+    started_at = datetime.fromisoformat(
+        state["started_at"]
+    )
 
     if started_at.tzinfo is None:
-        started_at = started_at.replace(tzinfo=timezone.utc)
+        started_at = started_at.replace(
+            tzinfo=timezone.utc
+        )
 
     now = datetime.now(timezone.utc)
 
-    elapsed_seconds = (now - started_at).total_seconds()
-    duration_seconds = state["duration_minutes"] * 60
+    elapsed_seconds = (
+        now - started_at
+    ).total_seconds()
+
+    duration_seconds = (
+        state["duration_minutes"] * 60
+    )
 
     return elapsed_seconds >= duration_seconds
 
 
 # =========================================================
-# NODE 4: GENERATE FOLLOW-UP
+# NODE 4: FOLLOW-UP
 # =========================================================
 
 def generate_follow_up(state: InterviewState):
+
     evaluation = state["evaluation"]
 
     question = generate_follow_up_question(
         topic=state["current_topic"],
+        concept=state["current_concept"],
         previous_question=state["current_question"],
         candidate_answer=state["candidate_answer"],
         weaknesses=evaluation["weaknesses"],
         missing_concepts=evaluation["missing_concepts"],
+        difficulty=state["difficulty"],
     )
 
     return {
@@ -157,7 +256,8 @@ def generate_follow_up(state: InterviewState):
         "candidate_answer": None,
         "evaluation": None,
 
-        "questions_asked": state["questions_asked"] + 1,
+        "questions_asked":
+            state["questions_asked"] + 1,
 
         "consecutive_follow_ups":
             state["consecutive_follow_ups"] + 1,
@@ -168,9 +268,13 @@ def generate_follow_up(state: InterviewState):
 # NODE 5: SAME LEVEL
 # =========================================================
 
-def generate_same_level_question(state: InterviewState):
+def generate_same_level_question(
+    state: InterviewState,
+):
+
     question = generate_interview_question(
         topic=state["current_topic"],
+        concept=state["current_concept"],
         difficulty=state["difficulty"],
     )
 
@@ -179,7 +283,8 @@ def generate_same_level_question(state: InterviewState):
         "candidate_answer": None,
         "evaluation": None,
 
-        "questions_asked": state["questions_asked"] + 1,
+        "questions_asked":
+            state["questions_asked"] + 1,
 
         "consecutive_follow_ups": 0,
     }
@@ -189,16 +294,15 @@ def generate_same_level_question(state: InterviewState):
 # NODE 6: GO DEEPER
 # =========================================================
 
-def generate_deeper_question(state: InterviewState):
-
-    # For V1 we use "hard" to represent a deeper question.
-    #
-    # Later we can create a dedicated deeper-question prompt
-    # that uses the previous answer as context.
+def generate_deeper_question(
+    state: InterviewState,
+):
 
     question = generate_interview_question(
         topic=state["current_topic"],
-        difficulty="hard",
+        concept=state["current_concept"],
+        difficulty=state["difficulty"],
+        deeper=True,
     )
 
     return {
@@ -206,43 +310,138 @@ def generate_deeper_question(state: InterviewState):
         "candidate_answer": None,
         "evaluation": None,
 
-        "questions_asked": state["questions_asked"] + 1,
+        "questions_asked":
+            state["questions_asked"] + 1,
 
         "consecutive_follow_ups": 0,
     }
 
 
 # =========================================================
-# NODE 7: MOVE TO NEXT TOPIC
+# NODE 7: MOVE TO NEXT CONCEPT
 # =========================================================
 
-def move_to_next_topic(state: InterviewState):
-
-    all_topics = (
-        state["core_topics"]
-        + state["gap_topics"]
-    )
+def move_to_next_concept(
+    state: InterviewState,
+):
 
     current_topic = state["current_topic"]
 
-    # Find where we currently are
+    if current_topic is None:
+        return {
+            "current_concept": None,
+        }
+
+    concepts = get_concepts_for_topic(
+        state,
+        current_topic,
+    )
+
+    next_index = (
+        state["current_concept_index"] + 1
+    )
+
+    # -----------------------------------------------------
+    # MORE CONCEPTS EXIST IN CURRENT TOPIC
+    # -----------------------------------------------------
+
+    if next_index < len(concepts):
+
+        return {
+            "current_concept":
+                concepts[next_index],
+
+            "current_concept_index":
+                next_index,
+
+            "questions_on_current_concept": 0,
+
+            "candidate_answer": None,
+            "evaluation": None,
+            "consecutive_follow_ups": 0,
+        }
+
+    # -----------------------------------------------------
+    # CURRENT TOPIC HAS NO MORE CONCEPTS
+    # -----------------------------------------------------
+
+    return {
+        "current_concept": None,
+    }
+
+
+# =========================================================
+# ROUTER: AFTER CONCEPT CHANGE
+# =========================================================
+
+def route_after_concept_change(
+    state: InterviewState,
+):
+
+    # Another concept exists in same topic.
+    if state["current_concept"] is not None:
+        return "continue_concept"
+
+    # Concepts exhausted -> move topic.
+    return "next_topic"
+
+
+# =========================================================
+# NODE 8: MOVE TO NEXT TOPIC
+# =========================================================
+
+def move_to_next_topic(
+    state: InterviewState,
+):
+
+    all_topics = get_all_topics(state)
+
+    current_topic = state["current_topic"]
+
     if current_topic not in all_topics:
         return {
             "current_topic": None,
+            "current_concept": None,
         }
 
-    current_index = all_topics.index(current_topic)
+    current_index = all_topics.index(
+        current_topic
+    )
 
-    next_index = current_index + 1
+    next_topic_index = current_index + 1
 
-    # No more topics
-    if next_index >= len(all_topics):
+    # -----------------------------------------------------
+    # NO MORE TOPICS
+    # -----------------------------------------------------
+
+    if next_topic_index >= len(all_topics):
+
         return {
             "current_topic": None,
+            "current_concept": None,
         }
 
+    # -----------------------------------------------------
+    # NEXT TOPIC
+    # -----------------------------------------------------
+
+    next_topic = all_topics[
+        next_topic_index
+    ]
+
+    concepts = get_concepts_for_topic(
+        state,
+        next_topic,
+    )
+
     return {
-        "current_topic": all_topics[next_index],
+        "current_topic": next_topic,
+
+        "current_concept": concepts[0],
+        "current_concept_index": 0,
+
+        "questions_on_current_concept": 0,
+
         "candidate_answer": None,
         "evaluation": None,
         "consecutive_follow_ups": 0,
@@ -250,10 +449,12 @@ def move_to_next_topic(state: InterviewState):
 
 
 # =========================================================
-# ROUTER: AFTER MOVING TOPIC
+# ROUTER: AFTER TOPIC CHANGE
 # =========================================================
 
-def route_after_topic_change(state: InterviewState):
+def route_after_topic_change(
+    state: InterviewState,
+):
 
     if state["current_topic"] is None:
         return "finish"
@@ -303,6 +504,11 @@ builder.add_node(
 )
 
 builder.add_node(
+    "move_to_next_concept",
+    move_to_next_concept,
+)
+
+builder.add_node(
     "move_to_next_topic",
     move_to_next_topic,
 )
@@ -336,7 +542,8 @@ builder.add_conditional_edges(
     "evaluate_answer",
     route_after_evaluation,
     {
-        "follow_up": "generate_follow_up",
+        "follow_up":
+            "generate_follow_up",
 
         "same_level":
             "generate_same_level_question",
@@ -344,10 +551,14 @@ builder.add_conditional_edges(
         "go_deeper":
             "generate_deeper_question",
 
+        "next_concept":
+            "move_to_next_concept",
+
         "next_topic":
             "move_to_next_topic",
 
-        "finish": END,
+        "finish":
+            END,
     },
 )
 
@@ -373,6 +584,23 @@ builder.add_edge(
 
 
 # =========================================================
+# AFTER CHANGING CONCEPT
+# =========================================================
+
+builder.add_conditional_edges(
+    "move_to_next_concept",
+    route_after_concept_change,
+    {
+        "continue_concept":
+            "generate_question",
+
+        "next_topic":
+            "move_to_next_topic",
+    },
+)
+
+
+# =========================================================
 # AFTER CHANGING TOPIC
 # =========================================================
 
@@ -380,8 +608,11 @@ builder.add_conditional_edges(
     "move_to_next_topic",
     route_after_topic_change,
     {
-        "continue": "generate_question",
-        "finish": END,
+        "continue":
+            "generate_question",
+
+        "finish":
+            END,
     },
 )
 

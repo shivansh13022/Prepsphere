@@ -15,7 +15,9 @@ from app.models.job_analysis import JobAnalysis
 from app.models.skill import Skill
 from app.models.skill_catalog import SkillCatalog
 from app.models.user import User
-
+from app.services.interview_concept_service import (
+    create_interview_concept_plan,
+)
 from app.schemas.interview import (
     InterviewSessionCreate,
     InterviewSessionResponse,
@@ -71,6 +73,10 @@ def finalize_interview(
         completeness=report.completeness,
         depth=report.depth,
         communication=report.communication,
+        topic_performance=[
+         topic.model_dump()
+         for topic in report.topic_performance
+        ],
 
         strengths=report.strengths,
         weaknesses=report.weaknesses,
@@ -325,35 +331,49 @@ def start_interview(
         current_user=current_user,
         db=db,
     )
+    all_topics = list(
+     dict.fromkeys(
+        plan.core_topics + plan.gap_topics
+     )
+    )
+
+    concept_plan= create_interview_concept_plan(
+     topics=all_topics,
+     difficulty=interview.difficulty,
+    )
+    
     started_at = datetime.now(timezone.utc)
 
     # Convert InterviewPlan -> LangGraph state.
     initial_state = {
-        "interview_id": interview.id,
-        "difficulty": interview.difficulty,
+     "interview_id": interview.id,
+     "difficulty": interview.difficulty,
 
-        "core_topics": plan.core_topics,
-        "gap_topics": plan.gap_topics,
+     "core_topics": plan.core_topics,
+     "gap_topics": plan.gap_topics,
 
-        "current_topic": None,
-        "current_question": None,
-        "candidate_answer": None,
+     "topic_concepts": concept_plan,
 
-        "questions_asked": 0,
+     "current_topic": None,
+     "current_concept": None,
+     "current_concept_index": 0,
+     "questions_on_current_concept": 0,
 
-        # TEMPORARILY 2 FOR TESTING.
-        # Change back to 10 after the report flow is verified.
-        "max_questions": 30,
+     "current_question": None,
+     "candidate_answer": None,
 
-        "consecutive_follow_ups": 0,
+     "questions_asked": 0,
+     "max_questions": 30,
 
-        "history": [],
+     "consecutive_follow_ups": 0,
 
-        "evaluation": None,
-        "end_requested": False,
+     "history": [],
 
-        "started_at": started_at.isoformat(),
-        "duration_minutes": interview.duration_minutes,
+     "evaluation": None,
+     "end_requested": False,
+
+     "started_at": started_at.isoformat(),
+     "duration_minutes": interview.duration_minutes,
     }
 
     # LangGraph conversation ID.
