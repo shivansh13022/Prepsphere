@@ -238,19 +238,11 @@ function JobAnalysisResult({
         </h3>
 
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-          Use the role requirements and your skill gaps to generate a targeted
-          preparation plan or start a job-specific mock interview.
+          Use the role requirements and your skill gaps to start a targeted,
+          job-specific mock interview.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white opacity-50"
-          >
-            Prepare for this role
-          </button>
-
           <button
             type="button"
             onClick={onStartInterview}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Square } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import {
@@ -74,6 +74,9 @@ function InterviewsPage() {
   // ======================================================
 
   const [ending, setEnding] = useState(false);
+
+  // Controls only the custom confirmation popup.
+  const [endModalOpen, setEndModalOpen] = useState(false);
 
   const [report, setReport] = useState<InterviewReportType | null>(null);
 
@@ -331,14 +334,6 @@ function InterviewsPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "End this interview now? Your report will be generated from the answers you have completed so far.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       setError("");
       setEnding(true);
@@ -356,6 +351,9 @@ function InterviewsPage() {
       setStartedAt(null);
 
       setStage("report");
+
+      // Close custom confirmation popup.
+      setEndModalOpen(false);
 
       // Update history with completed status.
       await loadInterviewHistory();
@@ -438,6 +436,8 @@ function InterviewsPage() {
 
     setEnding(false);
 
+    setEndModalOpen(false);
+
     setReport(null);
 
     setError("");
@@ -455,6 +455,7 @@ function InterviewsPage() {
     <div className="min-h-screen px-8 py-10 lg:px-14">
       <div className="mx-auto max-w-5xl">
         {/* Header */}
+
         <section className="border-b border-white/10 pb-8">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-blue-400">
             AI Interview
@@ -471,15 +472,16 @@ function InterviewsPage() {
         </section>
 
         {/* Error */}
+
         {error && (
           <div className="mt-6 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        {/* ==================================================
-            SETUP + HISTORY
-        ================================================== */}
+        {/* ================================================== */}
+        {/* SETUP + HISTORY */}
+        {/* ================================================== */}
 
         {stage === "setup" && (
           <>
@@ -503,9 +505,9 @@ function InterviewsPage() {
           </>
         )}
 
-        {/* ==================================================
-            STARTING
-        ================================================== */}
+        {/* ================================================== */}
+        {/* STARTING */}
+        {/* ================================================== */}
 
         {stage === "starting" && (
           <LoadingState
@@ -514,9 +516,9 @@ function InterviewsPage() {
           />
         )}
 
-        {/* ==================================================
-            ACTIVE INTERVIEW
-        ================================================== */}
+        {/* ================================================== */}
+        {/* ACTIVE INTERVIEW */}
+        {/* ================================================== */}
 
         {(stage === "interview" || stage === "submitting") && (
           <InterviewSession
@@ -530,19 +532,83 @@ function InterviewsPage() {
             ending={ending}
             remainingSeconds={remainingSeconds}
             onSubmit={handleSubmitAnswer}
-            onEnd={handleEndInterview}
+            onEnd={() => setEndModalOpen(true)}
           />
         )}
 
-        {/* ==================================================
-            REPORT
-        ================================================== */}
+        {/* ================================================== */}
+        {/* REPORT */}
+        {/* ================================================== */}
 
         {stage === "report" && report && (
           <InterviewReport
             report={report}
             onNewInterview={handleNewInterview}
           />
+        )}
+
+        {/* ================================================== */}
+        {/* END INTERVIEW CONFIRMATION */}
+        {/* ================================================== */}
+
+        {endModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !ending) {
+                setEndModalOpen(false);
+              }
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1118] p-6 shadow-2xl">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10">
+                <Square size={20} className="text-red-400" />
+              </div>
+
+              <h2 className="mt-5 font-serif text-2xl text-white">
+                End this interview?
+              </h2>
+
+              <p className="mt-3 text-sm leading-6 text-white/45">
+                Your interview will end now and your report will be generated
+                from the answers you have completed so far.
+              </p>
+
+              <p className="mt-2 text-xs text-white/30">
+                You won't be able to continue this interview after ending it.
+              </p>
+
+              <div className="mt-7 flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={ending}
+                  onClick={() => setEndModalOpen(false)}
+                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={ending}
+                  onClick={handleEndInterview}
+                  className="flex items-center gap-2 rounded-lg bg-red-500/90 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {ending ? (
+                    <>
+                      <LoaderCircle size={16} className="animate-spin" />
+                      Ending...
+                    </>
+                  ) : (
+                    <>
+                      <Square size={14} />
+                      End interview
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

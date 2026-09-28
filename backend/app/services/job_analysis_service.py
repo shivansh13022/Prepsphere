@@ -10,7 +10,10 @@ llm = ChatGroq(
     temperature=0,
 )
 
-structured_llm = llm.with_structured_output(JobAnalysisData)
+
+structured_llm = llm.with_structured_output(
+    JobAnalysisData
+)
 
 
 def analyze_job_description(
@@ -32,7 +35,21 @@ Rules:
 - Extract major job responsibilities.
 - Extract education requirements only if explicitly stated.
 - Return concise normalized skill names.
-- If information is unavailable, return null or an empty list.
+
+IMPORTANT OUTPUT RULES:
+- Every field that expects a list must ALWAYS return a list.
+- If a list field has no information, return [].
+- NEVER return null for a list field.
+- Optional single-value fields may return null when the information
+  is not present.
+- Do not infer requirements that are not explicitly stated.
+
+Examples:
+- No preferred skills -> []
+- No responsibilities -> []
+- No education requirements -> []
+- No keywords -> []
+- No required experience -> null
 
 Job title:
 {job_title}

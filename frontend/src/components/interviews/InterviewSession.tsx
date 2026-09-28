@@ -65,10 +65,6 @@ function InterviewSession({
   const { isSpeaking, voicesReady, speak, stopSpeaking } = useSpeechSynthesis();
   const lastSpokenQuestionRef = useRef<string>("");
 
-  /*
-    Whenever LangGraph gives us a NEW question,
-    automatically speak it once.
-  */
   useEffect(() => {
     if (
       !voicesReady ||

@@ -1,36 +1,120 @@
 import {
   BriefcaseBusiness,
-  FileText,
-  GraduationCap,
-  House,
-  MessageSquareText,
-  Settings,
   ClipboardList,
+  FileText,
+  House,
+  LogIn,
+  LogOut,
+  MessageSquareText,
+  TrendingUp,
+  X,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const navigation = [
-  { name: "Home", path: "/dashboard", icon: House },
-  { name: "Jobs", path: "/jobs", icon: BriefcaseBusiness },
-  { name: "Resume", path: "/resume", icon: FileText },
-  { name: "Interviews", path: "/interviews", icon: MessageSquareText },
-  { name: "Learning", path: "/learning", icon: GraduationCap },
-  { name: "Applications", path: "/applications", icon: ClipboardList },
+  {
+    name: "Dashboard",
+    path: "/dashboard",
+    icon: House,
+  },
+  {
+    name: "Jobs",
+    path: "/jobs",
+    icon: BriefcaseBusiness,
+  },
+  {
+    name: "Resume",
+    path: "/resume",
+    icon: FileText,
+  },
+  {
+    name: "Interviews",
+    path: "/interviews",
+    icon: MessageSquareText,
+  },
+  {
+    name: "Applications",
+    path: "/applications",
+    icon: ClipboardList,
+  },
+  {
+    name: "Progress",
+    path: "/progress",
+    icon: TrendingUp,
+  },
 ];
 
-function Sidebar() {
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-white/10 bg-[#080b11] px-4 py-6">
-      <div className="px-3">
-        <h1 className="text-xl font-semibold tracking-tight text-white">
-          Prep<span className="text-blue-400">Sphere</span>
-        </h1>
+interface SidebarProps {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  onClose?: () => void;
+}
 
-        <p className="mt-1 text-xs text-white/35">
-          AI Career Intelligence
-        </p>
+function Sidebar({ mobile = false, onNavigate, onClose }: SidebarProps) {
+  const navigate = useNavigate();
+
+  const isLoggedIn = Boolean(localStorage.getItem("access_token"));
+
+  const handleAuthAction = () => {
+    // -----------------------------
+    // LOGOUT
+    // -----------------------------
+
+    if (isLoggedIn) {
+      localStorage.removeItem("access_token");
+
+      // Close mobile sidebar if needed.
+      onNavigate?.();
+
+      // Redirect to public homepage.
+      navigate("/", {
+        replace: true,
+      });
+
+      return;
+    }
+
+    // -----------------------------
+    // LOGIN
+    // -----------------------------
+
+    onNavigate?.();
+
+    navigate("/login");
+  };
+
+  return (
+    <aside className="flex h-full w-full flex-col border-r border-white/10 bg-[#080b11] px-4 py-6">
+      {/* ================================ */}
+      {/* BRAND */}
+      {/* ================================ */}
+
+      <div className="flex items-start justify-between px-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-white">
+            Prep
+            <span className="text-blue-400">Sphere</span>
+          </h1>
+
+          <p className="mt-1 text-xs text-white/35">AI Career Intelligence</p>
+        </div>
+
+        {mobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/5 hover:text-white"
+            aria-label="Close navigation"
+          >
+            <X size={19} />
+          </button>
+        )}
       </div>
+
+      {/* ================================ */}
+      {/* NAVIGATION */}
+      {/* ================================ */}
 
       <nav className="mt-10 flex flex-1 flex-col gap-1">
         {navigation.map((item) => {
@@ -40,6 +124,7 @@ function Sidebar() {
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                   isActive
@@ -49,19 +134,38 @@ function Sidebar() {
               }
             >
               <Icon size={18} />
+
               <span>{item.name}</span>
             </NavLink>
           );
         })}
       </nav>
 
-      <NavLink
-        to="/settings"
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/55 transition hover:bg-white/5 hover:text-white"
+      {/* ================================ */}
+      {/* LOGIN / LOGOUT */}
+      {/* ================================ */}
+
+      <button
+        type="button"
+        onClick={handleAuthAction}
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
+          isLoggedIn
+            ? "text-white/55 hover:bg-red-500/[0.06] hover:text-red-300"
+            : "text-white/55 hover:bg-white/5 hover:text-white"
+        }`}
       >
-        <Settings size={18} />
-        <span>Settings</span>
-      </NavLink>
+        {isLoggedIn ? (
+          <>
+            <LogOut size={18} />
+            <span>Logout</span>
+          </>
+        ) : (
+          <>
+            <LogIn size={18} />
+            <span>Login</span>
+          </>
+        )}
+      </button>
     </aside>
   );
 }

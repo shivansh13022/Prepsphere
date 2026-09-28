@@ -81,3 +81,43 @@ export async function getJobMatch(
 
   return response.data;
 }
+
+// =========================================================
+// JOB DISCOVERY
+// =========================================================
+
+export interface DiscoveredJob {
+  external_job_id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  description: string | null;
+  redirect_url: string;
+  created: string | null;
+  contract_time: string | null;
+  category: string | null;
+}
+
+
+export interface JobDiscoveryResponse {
+  jobs: DiscoveredJob[];
+  total_results: number;
+}
+
+
+export async function discoverJobs(
+  query: string,
+  location?: string
+): Promise<JobDiscoveryResponse> {
+  const response = await api.get<JobDiscoveryResponse>(
+    "/jobs/discover",
+    {
+      params: {
+        query,
+        location: location || undefined,
+      },
+    }
+  );
+
+  return response.data;
+}

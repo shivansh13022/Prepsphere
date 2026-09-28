@@ -62,7 +62,50 @@ export interface InterviewReport {
   recommendations: string[];
   summary: string;
 }
+export interface OverallPerformance {
+  average_score: number;
+  latest_score: number;
+  technical_knowledge: number;
+  completeness: number;
+  depth: number;
+  communication: number;
+}
 
+export interface InterviewTrendPoint {
+  interview_id: number;
+  score: number;
+  completed_at: string;
+}
+
+export interface TopicAnalytics {
+  topic: string;
+  average_score: number;
+  latest_score: number;
+
+  previous_score: number | null;
+  change: number | null;
+
+  trend:
+    | "improving"
+    | "stable"
+    | "declining"
+    | "insufficient_data";
+
+  priority: "high" | "medium" | "low";
+
+  interviews: number;
+  technical_knowledge: number;
+  completeness: number;
+  depth: number;
+  communication: number;
+}
+
+export interface InterviewAnalytics {
+  total_interviews: number;
+  overall: OverallPerformance | null;
+  interview_trend: InterviewTrendPoint[];
+  topic_performance: TopicAnalytics[];
+}
 // ======================================================
 // CREATE INTERVIEW
 // ======================================================
@@ -142,6 +185,14 @@ export async function getInterviewReport(
 ): Promise<InterviewReport> {
   const response = await api.get<InterviewReport>(
     `/interviews/${interviewId}/report`
+  );
+
+  return response.data;
+}
+
+export async function getInterviewAnalytics(): Promise<InterviewAnalytics> {
+  const response = await api.get<InterviewAnalytics>(
+    "/interviews/analytics"
   );
 
   return response.data;

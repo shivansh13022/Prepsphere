@@ -7,6 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.schemas.interview_analytics import InterviewAnalytics
+from app.services.interview_analytics_service import (
+    get_interview_analytics,
+)
 
 from app.models.interview_session import InterviewSession
 from app.models.interview_report import InterviewReportModel
@@ -538,7 +542,18 @@ def get_interview_report(
         )
 
     return report
-
+@router.get(
+    "/interviews/analytics",
+    response_model=InterviewAnalytics,
+)
+def get_my_interview_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_interview_analytics(
+        db=db,
+        user_id=current_user.id,
+    )
 # =========================================================
 # MANUALLY END INTERVIEW
 # =========================================================
@@ -631,3 +646,4 @@ def get_interview_history(
     ).all()
 
     return interviews
+

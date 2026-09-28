@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     jobs,
     interviews,
     speech,
+    applications,
 )
 
 
@@ -40,4 +41,8 @@ router.include_router(
 router.include_router(
     speech.router,
     tags=["Speech"],
+)
+router.include_router(
+    applications.router,
+    tags=["Applications"],
 )

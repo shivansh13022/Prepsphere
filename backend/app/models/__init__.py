@@ -14,6 +14,7 @@ from app.models.skill_catalog import SkillCatalog
 from app.models.skill_alias import SkillAlias
 from app.models.interview_session import InterviewSession
 from app.models.interview_report import InterviewReportModel
+from app.models.application import Application
 
 __all__ = [
     "User",
@@ -32,4 +33,5 @@ __all__ = [
     "SkillAlias",
     "InterviewSession",
     "InterviewReportModel",
+    "Application"
 ]

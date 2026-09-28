@@ -21,6 +21,9 @@ from app.services.job_analysis_service import analyze_job_description
 from app.services.job_matching_service import calculate_job_match
 from app.services.skill_normalization_service import canonicalize_skills
 
+from app.schemas.job_discovery import JobDiscoveryResponse
+from app.services.job_discovery_service import discover_jobs
+
 
 router = APIRouter()
 
@@ -78,6 +81,21 @@ def get_jobs(
     ).all()
 
     return jobs
+
+
+@router.get(
+    "/jobs/discover",
+    response_model=JobDiscoveryResponse,
+)
+def discover_external_jobs(
+    query: str = "software engineer",
+    location: str | None = None,
+    current_user: User = Depends(get_current_user),
+):
+    return discover_jobs(
+        query=query,
+        location=location,
+    )
 
 
 @router.get(
