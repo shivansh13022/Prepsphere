@@ -479,18 +479,6 @@ The deployed backend runs Alembic migrations before starting the FastAPI server.
 
 ---
 
-# 📸 Screenshots
-
-> Screenshots of the production application will be added here.
-
-Recommended screenshots:
-
-1. Dashboard
-2. Interview setup / active interview
-3. Interview performance report
-4. Progress & skill trend analytics
-5. Job discovery / application tracker
-
 ---
 
 # 🔮 Future Improvements
