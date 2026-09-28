@@ -13,6 +13,11 @@ class Settings(BaseSettings):
 
     adzuna_app_id: str
     adzuna_app_key: str
+    google_client_id: str
+
+    # Frontend allowed to call this API.
+    # Localhost is the default for development.
+    frontend_url: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env",

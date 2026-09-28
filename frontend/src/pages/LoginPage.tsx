@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, saveToken } from "../services/auth/authService";
+import { GoogleLogin } from "@react-oauth/google";
+
+import { googleLogin, login, saveToken } from "../services/auth/authService";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -9,6 +11,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,7 +26,6 @@ function LoginPage() {
       });
 
       saveToken(response.access_token);
-
       navigate("/dashboard");
     } catch {
       setError("Invalid email or password.");
@@ -32,28 +34,61 @@ function LoginPage() {
     }
   };
 
+  const handleGoogleSuccess = async (credential?: string) => {
+    if (!credential) {
+      setError("Google sign-in did not return a credential.");
+      return;
+    }
+
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      const response = await googleLogin(credential);
+
+      saveToken(response.access_token);
+      navigate("/dashboard");
+    } catch {
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#070A0F] text-white flex">
-      {/* Left side */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-white/10">
-        <div className="text-xl font-semibold">
-          PrepSphere
-        </div>
+    <div className="flex min-h-screen bg-[#070A0F] text-white">
+      {/* Left editorial panel */}
+      <div className="hidden w-1/2 flex-col justify-between border-r border-white/10 p-12 lg:flex">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="flex w-fit items-center gap-3"
+        >
+          <img
+            src="/branding/prepsphere-mark.png"
+            alt=""
+            className="h-10 w-10 shrink-0 object-contain"
+          />
+
+          <span className="text-xl font-semibold tracking-tight text-white">
+            Prep<span className="text-blue-400">Sphere</span>
+          </span>
+        </button>
 
         <div className="max-w-xl">
           <p className="mb-4 text-sm uppercase tracking-[0.2em] text-blue-400">
             AI Career Intelligence
           </p>
 
-          <h1 className="text-6xl leading-[1.05] font-serif">
+          <h1 className="font-serif text-6xl leading-[1.05]">
             Prepare for the
             <span className="text-blue-400 italic"> opportunity </span>
             you want.
           </h1>
 
           <p className="mt-6 max-w-md text-lg text-white/55">
-            Turn your resume, target jobs, and interview performance
-            into a personalized preparation system.
+            Turn your resume, target jobs, and interview performance into a
+            personalized preparation system.
           </p>
         </div>
 
@@ -62,77 +97,134 @@ function LoginPage() {
         </p>
       </div>
 
-      {/* Login */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center px-6">
+      {/* Login side */}
+      <div className="flex w-full items-center justify-center px-6 py-10 lg:w-1/2">
         <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="mb-10 flex w-fit items-center gap-2.5 lg:hidden"
+          >
+            <img
+              src="/branding/prepsphere-mark.png"
+              alt=""
+              className="h-9 w-9 object-contain"
+            />
+
+            <span className="text-xl font-semibold tracking-tight text-white">
+              Prep<span className="text-blue-400">Sphere</span>
+            </span>
+          </button>
+
           <p className="mb-3 text-sm uppercase tracking-[0.18em] text-blue-400">
             Welcome back
           </p>
 
-          <h2 className="text-4xl font-serif">
-            Sign in to PrepSphere
-          </h2>
+          <h2 className="font-serif text-4xl">Sign in to PrepSphere</h2>
 
-          <p className="mt-3 mb-10 text-white/50">
+          <p className="mt-3 text-white/50">
             Continue your interview preparation journey.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="mb-2 block text-sm text-white/70">
-                Email
-              </label>
+          {/* Authentication area */}
+          <div className="mt-9">
+            <p className="mb-3 text-sm font-medium text-white/70">
+              Quick sign in
+            </p>
 
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none transition focus:border-blue-500"
-              />
+            <div className="flex min-h-[52px] w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3 transition hover:border-white/20 hover:bg-white/[0.05]">
+              {googleLoading ? (
+                <span className="text-sm text-white/50">
+                  Signing in with Google...
+                </span>
+              ) : (
+                <GoogleLogin
+                  onSuccess={(credentialResponse) =>
+                    handleGoogleSuccess(credentialResponse.credential)
+                  }
+                  onError={() =>
+                    setError("Google sign-in failed. Please try again.")
+                  }
+                  theme="filled_black"
+                  size="large"
+                  shape="rectangular"
+                  text="continue_with"
+                  logo_alignment="left"
+                  width="360"
+                />
+              )}
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-white/70">
-                Password
-              </label>
+            <div className="my-7 flex items-center gap-4">
+              <div className="h-px flex-1 bg-white/10" />
 
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter your password"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none transition focus:border-blue-500"
-              />
+              <span className="text-[11px] uppercase tracking-[0.18em] text-white/30">
+                or use email
+              </span>
+
+              <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            {error && (
-              <p className="text-sm text-red-400">
-                {error}
-              </p>
-            )}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm text-white/70">
+                  Email
+                </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium transition hover:bg-blue-500 disabled:opacity-50"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none transition placeholder:text-white/25 focus:border-blue-500"
+                />
+              </div>
 
-          <p className="mt-8 text-sm text-white/45">
-            Don't have an account?{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="text-blue-400 hover:text-blue-300"
-            >
-              Create account
-            </button>
-          </p>
+              <div>
+                <label className="mb-2 block text-sm text-white/70">
+                  Password
+                </label>
+
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 outline-none transition placeholder:text-white/25 focus:border-blue-500"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-500/15 bg-red-500/[0.06] px-3 py-2.5">
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Signing in..." : "Sign in"}
+              </button>
+            </form>
+          </div>
+
+          <div className="mt-8 border-t border-white/[0.07] pt-6">
+            <p className="text-sm text-white/45">
+              Don't have an account?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/register")}
+                className="font-medium text-blue-400 transition hover:text-blue-300"
+              >
+                Create account
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

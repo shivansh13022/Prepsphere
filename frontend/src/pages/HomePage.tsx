@@ -18,25 +18,33 @@ function HomePage() {
       {/* ================================================= */}
 
       <header className="border-b border-white/[0.07]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
-          <Link
-            to="/"
-            className="font-serif text-2xl tracking-tight text-white"
-          >
-            PrepSphere
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5 lg:px-10">
+          {/* Logo */}
+          <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <img
+              src="/branding/prepsphere-mark.png"
+              alt=""
+              className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
+            />
+
+            <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-white sm:text-2xl">
+              Prep
+              <span className="text-blue-400">Sphere</span>
+            </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          {/* Authentication */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             <Link
               to="/login"
-              className="px-4 py-2 text-sm text-white/55 transition hover:text-white"
+              className="whitespace-nowrap px-2 py-2 text-sm text-white/55 transition hover:text-white sm:px-4"
             >
               Sign in
             </Link>
 
             <Link
               to="/register"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+              className="whitespace-nowrap rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-500 sm:px-4"
             >
               Get started
             </Link>
@@ -337,11 +345,105 @@ function HomePage() {
       {/* FOOTER */}
       {/* ================================================= */}
 
-      <footer className="border-t border-white/[0.07]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-xs text-white/25 sm:flex-row sm:items-center sm:justify-between lg:px-10">
-          <p className="font-serif text-base text-white/60">PrepSphere</p>
+      <footer className="border-t border-white/[0.07] bg-[#070A0F]">
+        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-10">
+          {/* Main footer */}
+          <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+            {/* Brand */}
+            <div>
+              <Link to="/" className="flex w-fit items-center gap-3">
+                <img
+                  src="/branding/prepsphere-mark.png"
+                  alt=""
+                  className="h-10 w-10 object-contain"
+                />
 
-          <p>AI-powered career preparation.</p>
+                <span className="text-xl font-semibold tracking-tight text-white">
+                  Prep
+                  <span className="text-blue-400">Sphere</span>
+                </span>
+              </Link>
+
+              <p className="mt-5 max-w-sm text-sm leading-6 text-white/35">
+                AI-powered career preparation that turns opportunities into
+                focused practice and measurable progress.
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
+                Product
+              </p>
+
+              <div className="mt-5 flex flex-col items-start gap-3 text-sm">
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Job Discovery
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Resume Intelligence
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  AI Interviews
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Progress Analytics
+                </Link>
+              </div>
+            </div>
+
+            {/* Platform */}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">
+                Platform
+              </p>
+
+              <div className="mt-5 flex flex-col items-start gap-3 text-sm">
+                <Link
+                  to="/login"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Sign in
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Create account
+                </Link>
+
+                <Link
+                  to="/register"
+                  className="text-white/45 transition hover:text-white"
+                >
+                  Get started
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom footer */}
+          <div className="mt-12 flex flex-col gap-4 border-t border-white/[0.07] pt-6 text-xs text-white/25 sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 PrepSphere. All rights reserved.</p>
+
+            <p>Built for better preparation.</p>
+          </div>
         </div>
       </footer>
     </div>

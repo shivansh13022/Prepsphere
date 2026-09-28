@@ -27,6 +27,16 @@ export async function login(data: LoginData): Promise<TokenResponse> {
   return response.data;
 }
 
+export async function googleLogin(
+  credential: string,
+): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>("/auth/google", {
+    credential,
+  });
+
+  return response.data;
+}
+
 export async function register(data: RegisterData): Promise<User> {
   const response = await api.post<User>("/users", data);
   return response.data;

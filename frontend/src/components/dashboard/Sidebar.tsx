@@ -91,13 +91,23 @@ function Sidebar({ mobile = false, onNavigate, onClose }: SidebarProps) {
       {/* ================================ */}
 
       <div className="flex items-start justify-between px-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-white">
-            Prep
-            <span className="text-blue-400">Sphere</span>
-          </h1>
+        <div className="flex items-center gap-3">
+          <img
+            src="/branding/prepsphere-mark.png"
+            alt="PrepSphere"
+            className="h-10 w-10 shrink-0 object-contain"
+          />
 
-          <p className="mt-1 text-xs text-white/35">AI Career Intelligence</p>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-white">
+              Prep
+              <span className="text-blue-400">Sphere</span>
+            </h1>
+
+            <p className="mt-0.5 text-[11px] tracking-wide text-white/35">
+              AI Career Intelligence
+            </p>
+          </div>
         </div>
 
         {mobile && (
